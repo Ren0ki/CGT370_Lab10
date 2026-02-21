@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Exam Scores by Study Hour </title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+  }
+
+  svg {
+    border: 1px solid #ddd;
+  }
+
+  .point {
+    fill: steelblue;
+  }
+
+  .axis-line {
+    stroke: black;
+  }
+
+  .tick text {
+    font-size: 11px;
+  }
+
+  .title {
+    font-size: 18px;
+    font-weight: bold;
+    text-anchor: middle;
+  }
+
+  .axis-label {
+    font-size: 14px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+
+<svg id="scatter-plot" width="900" height="500"></svg>
+
+<script>
+
+// ----------------------------------
+// 1. LOAD DATA
+// ----------------------------------
+
+fetch("data.json")
+  .then(response => response.json())
+  .then(data => {
+    //TODO: call the chart drawing function
+    createScatterPlot(data);
+  })
+  .catch(error => {
+    console.error("Error loading data:", error);
+  });
+
+// ----------------------------------
+// 2. CHART DIMENSIONS
+// ----------------------------------
+
+const width = 800;
+const height = 500;
+
+const margin = {
+  top: 140,
+  right: 40,
+  bottom: 100,
+  left: 80
+};
+
+const chartWidth = width - margin.left - margin.right;
+const chartHeight = height - margin.top - margin.bottom;
+
+// ----------------------------------
+// 3. CREATE SCATTER PLOT
+// ----------------------------------
+
+function createScatterPlot(data) {
+
+  const svg = document.getElementById("scatter-plot");
+
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("transform", `translate(${margin.left}, ${margin.top})`);
+  svg.appendChild(g);
+
+  // ----------------------------------
+  // FIND MAX VALUES
+  // ----------------------------------
+
+  const maxScore = Math.max(...data.map(d => d.examScore));
+  const maxHour = Math.max(...data.map(d => d.studyHours));
+
+  // ----------------------------------
+  // TODO: IMPLEMENT SCALES
+  // ----------------------------------
+
+  function scaleX(value) {
+    return (value/maxHour) * chartWidth;
+  }
+
+  function scaleY(value) {
+    return chartHeight - (value / maxScore) * chartHeight;
+  }
+
+  // ----------------------------------
+  // AXIS LINES (Provided)
+  // ----------------------------------
+
+  const xAxisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  xAxisLine.setAttribute("x1", 0);
+  xAxisLine.setAttribute("x2", chartWidth);
+  xAxisLine.setAttribute("y1", chartHeight);
+  xAxisLine.setAttribute("y2", chartHeight);
+  xAxisLine.setAttribute("class", "axis-line");
+  g.appendChild(xAxisLine);
+
+  const yAxisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  yAxisLine.setAttribute("x1", 0);
+  yAxisLine.setAttribute("x2", 0);
+  yAxisLine.setAttribute("y1", 0);
+  yAxisLine.setAttribute("y2", chartHeight);
+  yAxisLine.setAttribute("class", "axis-line");
+  g.appendChild(yAxisLine);
+
+  // ----------------------------------
+  // AXIS TICKS 
+  // ----------------------------------
+
+  //TODO: Adjust the number of ticks
+  const tickCount = 8;   
+  // X-axis ticks
+  for (let i = 0; i <= tickCount; i++) {
+
+    const value = (maxHour / tickCount) * i;
+
+    //TODO: const xPos
+    const xPos = scaleX(value); 
+
+    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    tick.setAttribute("x1", xPos);
+    tick.setAttribute("x2", xPos);
+    tick.setAttribute("y1", chartHeight);
+    tick.setAttribute("y2", chartHeight + 6);
+    tick.setAttribute("stroke", "black");
+    g.appendChild(tick);
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", xPos);
+    label.setAttribute("y", chartHeight + 20);
+    label.setAttribute("text-anchor", "middle");
+    label.textContent = Math.round(value);
+    g.appendChild(label);
+  }
+
+
+  // Y-axis ticks
+  for (let i = 0; i <= tickCount; i++) {
+
+    const value = (maxScore / tickCount) * i;
+    
+    //TODO: compute the yPos
+    const yPos= scaleY(value);
+
+    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    tick.setAttribute("x1", -6);
+    tick.setAttribute("x2", 0);
+    tick.setAttribute("y1", yPos);
+    tick.setAttribute("y2", yPos);
+    tick.setAttribute("stroke", "black");
+    g.appendChild(tick);
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", -10);
+    label.setAttribute("y", yPos + 4);
+    label.setAttribute("text-anchor", "end");
+    label.textContent = Math.round(value);
+    g.appendChild(label);
+  }
+
+
+  // ----------------------------------
+  // TODO: GENERATE SCATTER POINTS
+  // ----------------------------------
+
+  data.forEach(d => {
+
+    // 1. Compute cx using scaleX
+    const cx = scaleX(d.studyHours);
+    
+    // 2. Compute cy using scaleY
+    const cy = scaleY(d.examScore);
+
+    // 3. Create circle
+    const circle = 
+      document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', cx);
+      circle.setAttribute('cy', cy);
+      circle.setAttribute('r', 6);
+      circle.setAttribute('fill', 'orange');
+
+    // 4. Append to group
+        g.appendChild(circle);
+
+  // ----------------------------------
+  // TODO: ADD INTERACTION
+  // ----------------------------------
+
+    // On hover:
+
+    const onHover = document.createElementNS('http://www.w3.org/2000/svg', 'text');  // - Show name + score
+    
+    circle.addEventListener("mouseover", (event) =>{
+
+        event.target.setAttribute('fill', '#9BEBEB'); // - Change color
+            onHover.textContent = `${d.studyHours} hour(s): ${d.examScore}`;
+            onHover.setAttribute('x', cx + 10);
+            onHover.setAttribute('y', cy + 10);
+            onHover.setAttribute('font-size', 12);
+            onHover.setAttribute('fill', 'black');
+            g.appendChild(onHover);
+
+          });
+
+        circle.addEventListener("mouseout", (event) =>{
+            event.target.setAttribute('fill', 'orange');   // - Change color
+            if (onHover){
+              g.removeChild(onHover);
+            }
+       });
+
+ });
+ 
+  // ----------------------------------
+  // TODO: ADD TITLES
+  // ----------------------------------
+
+  // Add:
+  // - Chart title
+  const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');  
+  title.textContent="Exam Scores by Study Hours";
+  title.setAttribute('x', chartWidth / 3.3);
+  title.setAttribute('y', -margin.top + 80);
+  title.setAttribute('font-size', 24);
+  title.setAttribute('fill', 'black');
+  g.appendChild(title);
+
+  // - X-axis label
+  const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');  
+  xLabel.textContent="Study Hours";
+  xLabel.setAttribute('x', chartWidth / 2.1);
+  xLabel.setAttribute('y', -margin.top + 470);
+  xLabel.setAttribute('font-size', 16);
+  xLabel.setAttribute('fill', 'black');
+  g.appendChild(xLabel);
+  
+  // - Y-axis label (rotated)
+  const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');  
+  yLabel.textContent="Exam Score";
+  yLabel.setAttribute('x', -chartHeight + 40 );
+  yLabel.setAttribute('y',  -50);
+  yLabel.setAttribute("transform", "rotate(-90)");
+  yLabel.setAttribute("class", "label")
+  yLabel.setAttribute('font-size', 16);
+  yLabel.setAttribute('fill', 'black');
+  g.appendChild(yLabel);
+
+}
+
+</script>
+</body>
+</html>
